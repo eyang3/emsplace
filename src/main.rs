@@ -28,12 +28,12 @@ async fn hello() -> impl Responder {
 async fn get_data() -> impl Responder {
     
     let mut client = POOL.get().unwrap();
-    /* for row in client.query("select * from test_table", &[]).unwrap(){
-        let id: i32 = row.get(0);
-        let name: &str = row.get(1);
-        println!("found player: {} {}", id, name);
-    } */
-    HttpResponse::Ok().body("Hello world!")
+    let mut v: Vec<types::Person> = Vec::new();
+    for row in client.query("select * from test_table", &[]).unwrap(){
+        let u = types::Person{id: row.get(0), data: row.get(1)};
+        v.push(u);
+    }
+    HttpResponse::Ok().json(v)
 
 
 }
