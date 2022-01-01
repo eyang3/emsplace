@@ -1,5 +1,6 @@
 mod types;
 mod routes;
+mod db;
 
 use actix_web::dev::Service;
 use actix_web::http::{header, HeaderValue, HeaderName};
@@ -11,17 +12,7 @@ use std::env;
 #[macro_use]
 extern crate lazy_static;
 
-lazy_static! {
-    static ref POOL: r2d2::Pool<PostgresConnectionManager<NoTls>> = {
-        let manager = PostgresConnectionManager::new(
-            "host=localhost user=iamspazzy dbname=emsplace"
-                .parse()
-                .unwrap(),
-            NoTls,
-        );
-        r2d2::Pool::new(manager).unwrap()
-    };
-}
+
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -30,7 +21,7 @@ async fn hello() -> impl Responder {
 
 #[get("/db_info")]
 async fn get_data() -> impl Responder {
-    let mut client = POOL.get().unwrap();
+    let mut client = db::POOL.get().unwrap();
     let mut v: Vec<types::Person> = Vec::new();
     for row in client.query("select * from test_table", &[]).unwrap() {
         let u = types::Person {
@@ -70,8 +61,9 @@ async fn main() -> std::io::Result<()> {
             .wrap_fn(|mut reqm, srv| {   
                 println!("Hi from start. You requested: {}", reqm.path());
                 let obj = reqm.headers_mut();
-                let auth = HeaderName::from_lowercase(b"custom-header").unwrap();
+                let auth = HeaderName::from_lowercase(b"custom-header").unwrap();   
                 obj.insert(auth, HeaderValue::from_static("boo"));
+                println!("Was there an error here");
                 srv.call(reqm)
             })
             .service(hello)
@@ -79,7 +71,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_data)
             .service(routes::route_function_example)
             .route("/hey", web::get().to(manual_hello))
-            .service(do_stuff)
+            .service(routes::do_stuff)
+            .service(routes::login::login)
     })
     .bind(("0.0.0.0", port))?
     .run()
