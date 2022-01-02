@@ -20,7 +20,8 @@ pub struct DBUser {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
-    pub username: String
+    pub username: String,
+    pub exp: usize
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

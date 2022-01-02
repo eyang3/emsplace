@@ -2,28 +2,39 @@
 use super::types; 
 use super::db;
 
-use actix_web::web::{Bytes, Json};
-use actix_web::{HttpResponse, post, HttpRequest};
-
-use data_encoding::HEXUPPER;
-use r2d2_postgres::postgres::row::RowIndex;
-use ring::rand::SecureRandom;
-use ring::{digest, pbkdf2, rand};
 use std::num::NonZeroU32;
 use std::env;
-use std::os::unix::prelude::OsStrExt;
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-use std::collections::BTreeMap;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 
+use actix_web::web::{Bytes, Json};
+use actix_web::{HttpResponse, post, HttpRequest};
+use data_encoding::HEXUPPER;
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation, Algorithm};
+use ring::{digest, pbkdf2};
 
+pub fn validate_jwt(token: &str) -> String {
+    let secret = match env::var("EMSPLACE_SECRET") {
+        Ok(value) => value,
+        Err(E) => "DEFAULT".to_string()
+    };
+    let token_message = decode::<types::Claims>(&token, 
+        &DecodingKey::from_secret(secret.as_bytes()), 
+        &Validation::new(Algorithm::HS256));
+    let msg = match token_message {
+        Ok(value) => value.claims.username,
+        Err(e) => {
+            println!("{}", e);
+            "No User".to_string()
+        }
+    };
+    return msg;
+}
 fn generate_jwt(username: &str) -> String{
     let secret = match env::var("EMSPLACE_SECRET") {
         Ok(value) => value,
         Err(E) => "DEFAULT".to_string()
     };
-    let claims = types::Claims { username: username.to_string() };
+    // no expiration date so far TODO: Change to a monthly expiration
+    let claims = types::Claims { username: username.to_string(), exp: 10000000000};
     let value = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes())).unwrap();
     return value;
 }

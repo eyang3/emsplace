@@ -38,14 +38,6 @@ async fn echo(req_body: String) -> impl Responder {
     HttpResponse::Ok().body(req_body)
 }
 
-#[get("/test")]
-async fn do_stuff(req: HttpRequest) -> impl Responder {
-    println!("{:?}", req);
-    HttpResponse::Ok().body("Hello Test")
-}
-
-
-
 async fn manual_hello() -> impl Responder {
     HttpResponse::Ok().body("Hey there!")
 }
@@ -59,11 +51,16 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap_fn(|mut reqm, srv| {   
-                println!("Hi from start. You requested: {}", reqm.path());
                 let obj = reqm.headers_mut();
-                let auth = HeaderName::from_lowercase(b"custom-header").unwrap();   
-                obj.insert(auth, HeaderValue::from_static("boo"));
-                println!("Was there an error here");
+                let basic_auth_header = obj.get("Authorization");
+                match basic_auth_header {
+                    Some(value) => {
+                        let (auth, user_str) = authenticate(value);
+                        obj.insert(auth, HeaderValue::from_str(user_str.as_str()).unwrap());
+
+                    },
+                    None => println!("No header")
+                }
                 srv.call(reqm)
             })
             .service(hello)
@@ -77,4 +74,14 @@ async fn main() -> std::io::Result<()> {
     .bind(("0.0.0.0", port))?
     .run()
     .await
+}
+
+fn authenticate(value: &HeaderValue)-> (HeaderName, String) {
+    let basic_auth: &str = value.to_str().unwrap();
+    let token = basic_auth.split(' ').collect::<Vec<&str>>()[1];
+    let user = routes::login::validate_jwt(token);
+    println!("{}", user);
+    let user_str = user.as_str();
+    let auth = HeaderName::from_lowercase(b"whoami").unwrap();
+    return (auth, user_str.to_string());
 }
