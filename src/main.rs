@@ -55,8 +55,7 @@ async fn main() -> std::io::Result<()> {
                 let basic_auth_header = obj.get("Authorization");
                 match basic_auth_header {
                     Some(value) => {
-                        let (auth, user_str) = authenticate(value);
-                        obj.insert(auth, HeaderValue::from_str(user_str.as_str()).unwrap());
+                        let (auth, user_str) = authenticate(value);                        obj.insert(auth, HeaderValue::from_str(user_str.as_str()).unwrap());
 
                     },
                     None => println!("No header")
