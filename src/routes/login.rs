@@ -5,7 +5,7 @@ use super::db;
 use std::num::NonZeroU32;
 use std::env;
 
-use actix_web::web::{Bytes, Json};
+use actix_web::web::{Json};
 use actix_web::{HttpResponse, post, HttpRequest};
 use data_encoding::HEXUPPER;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation, Algorithm};
@@ -22,7 +22,6 @@ pub fn validate_jwt(token: &str) -> String {
     let msg = match token_message {
         Ok(value) => value.claims.username,
         Err(e) => {
-            println!("{}", e);
             "No User".to_string()
         }
     };

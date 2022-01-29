@@ -21,53 +21,80 @@ use ring::rand::SecureRandom;
 use ring::{digest, pbkdf2, rand};
 use std::num::NonZeroU32;
 
+use rusoto_s3::{S3, S3Client, PutObjectRequest};
+
+
 pub mod login;
 
-pub async fn save_file(mut payload: Multipart, file_path: String) -> Option<bool> {    
+pub async fn save_file(mut payload: Multipart) -> &'static  str {   
+    let mut res = "";
     while let Ok(Some(mut field)) = payload.try_next().await {
         let content_type = field.content_disposition().unwrap();
         let name = content_type.get_name().unwrap();
         if name == "image" {
             let file_content = Some(field.map(|chunk| chunk.unwrap()).collect::<Vec<Bytes>>().await);
-            match file_content {
-                Some(vec) => { 
-                    base64_url_to_file(vec);
+            res = match file_content {
+                Some(vec) => {
+                    // base64_url_to_file(vec).await;
+                    let value = base64_url_to_s3(vec).await;
+                    println!("{:?}", value);
+                    return "Okay"
                 },
-                None => println!("There is an Error")
-            }
+                None => "Error"
+            };
         }
     }
-    Some(true)
+    return res;
 }
 
-fn base64_url_to_file(vec: Vec<Bytes>) {
+async fn base64_url_to_s3(vec: Vec<Bytes>)-> Box<std::string::String> {
     let content = vec.concat();
     let val = str::from_utf8(&content);
     let base64 = val.unwrap();
     let url = DataUrl::process(base64).unwrap();
     let (body, _fragment) = url.decode_to_vec().unwrap();
     let file_type =  &url.mime_type().subtype;
-    let root = nanoid!(10);
-    let file_name = root + "." + file_type;
-    let mut file = File::create(file_name).unwrap();
-    file.write_all(&body);
+    if file_type == "jpg" || file_type == "png" {
+        let root = nanoid!(10);
+        let file_name = root + "." + file_type;
+        let result = db::s3_client.put_object(PutObjectRequest {
+            bucket: String::from("test"),
+            key: file_name.to_owned(),
+            body: Some(body.to_owned().into()),
+            ..Default::default()
+        }).await;
+        println!("{:?}", result);
+        return Box::new(file_name);
+    }
+    return Box::new("Error".to_string());
+}
+
+async fn base64_url_to_file(vec: Vec<Bytes>)-> &'static str {
+    let content = vec.concat();
+    let val = str::from_utf8(&content);
+    let base64 = val.unwrap();
+    let url = DataUrl::process(base64).unwrap();
+    let (body, _fragment) = url.decode_to_vec().unwrap();
+    let file_type =  &url.mime_type().subtype;
+    if file_type == "jpg" || file_type == "png" {
+        let root = nanoid!(10);
+        let file_name = root + "." + file_type;
+        let mut file = File::create(file_name).unwrap();
+        file.write_all(&body);
+        return("valid image file");
+    }
+    return("invalid image filetype");
 }
 
 #[post("/upload_image")]
 pub async fn route_function_example(
     mut payload: Multipart
 ) -> Result<HttpResponse, HttpResponse> {
-    let upload_status = save_file(payload, "filename.jpg".to_string()).await;
-    match upload_status {
-        Some(true) => {
-            Ok(HttpResponse::Ok()
+    let upload_status = save_file(payload).await;
+
+    Ok(HttpResponse::Ok()
                 .content_type("text/plain")
-                .body("update_succeeded"))
-        }
-        _ => Ok(HttpResponse::BadRequest()
-            .content_type("text/plain")
-            .body("update_failed")),
-    }
+                .body(upload_status))
 }
 
 #[post("/signup")]

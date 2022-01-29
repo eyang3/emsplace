@@ -3,16 +3,33 @@ mod routes;
 mod db;
 
 use actix_web::dev::Service;
-use actix_web::http::{header, HeaderValue, HeaderName};
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
-use r2d2_postgres::postgres::{Client, NoTls};
-use r2d2_postgres::PostgresConnectionManager;
+use actix_web::http::{HeaderValue, HeaderName};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use std::env;
+use http::Uri;
+
+use rusoto_core::Region;
+use rusoto_s3::{S3, S3Client, PutObjectRequest};
+
 
 #[macro_use]
 extern crate lazy_static;
 
-
+#[get("/s3")]
+async fn tests3() -> impl Responder {
+    let s3_client = S3Client::new(Region::Custom {
+        name: "blah".to_owned(),
+        endpoint: "http://localhost:4566".to_owned(),
+    });
+    let result = s3_client.put_object(PutObjectRequest {
+        bucket: String::from("test"),
+        key: "text2.txt".to_string(),
+        body: Some("Hello".to_owned().into_bytes().into()),
+        ..Default::default()
+    }).await;
+    println!("{:?}", result);
+    HttpResponse::Ok().body("Hey there!")
+}
 
 #[get("/")]
 async fn hello() -> impl Responder {
@@ -69,6 +86,8 @@ async fn main() -> std::io::Result<()> {
             .route("/hey", web::get().to(manual_hello))
             .service(routes::do_stuff)
             .service(routes::login::login)
+            .service(tests3)
+
     })
     .bind(("0.0.0.0", port))?
     .run()
