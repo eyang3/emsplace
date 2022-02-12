@@ -1,3 +1,5 @@
+use super::types; 
+
 use std::string;
 use std::fmt;
 use r2d2_postgres::postgres::{Client, NoTls};
@@ -43,21 +45,35 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref bucket: String = {
-        let ret_value =  match env::var("EMSPLACE_S3") {
+    pub static ref BUCKET: String = {
+        let ret_value = match env::var("EMPLACE_BUCKET") {
             Ok(value) => {
                 Box::new(value)
             },
-            Err(_) => {
-                let value = String::from("http://localhost:4566");
-                return Box::new(value).to_string();
+            Err(_) =>  {
+                let value = "test".to_string();
+                return(value)
             }
         };
-        return(ret_value).to_string();
+        return(ret_value).to_string()
     };
+}
+
+pub async fn save_post_to_db(entry: types::ImageUpload) {
+    let mut client = POOL.get().unwrap();
+    let result = client.query(create_post, &[&entry.userid, &entry.filename, &entry.caption, &entry.isvenmo]);
+    match result {
+        Ok(_) => (
+            println!("No error")
+        ),
+        Err(e) => (
+            println!("{:?}", e)
+        ),
+    }
 }
 
 pub static create_user: &str  = "INSERT INTO users (email, password, salt) VALUES ($1, $2, $3)";
 pub static query_user: &str = "SELECT * FROM users where email = $1";
+pub static create_post: &str = "INSERT INTO posts(userid, image_name, caption, show_venmo) values ($1, $2, $3, $4)";
 
 

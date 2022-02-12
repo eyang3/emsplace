@@ -27,7 +27,6 @@ async fn tests3() -> impl Responder {
         body: Some("Hello".to_owned().into_bytes().into()),
         ..Default::default()
     }).await;
-    println!("{:?}", result);
     HttpResponse::Ok().body("Hey there!")
 }
 
@@ -98,7 +97,6 @@ fn authenticate(value: &HeaderValue)-> (HeaderName, String) {
     let basic_auth: &str = value.to_str().unwrap();
     let token = basic_auth.split(' ').collect::<Vec<&str>>()[1];
     let user = routes::login::validate_jwt(token);
-    println!("{}", user);
     let user_str = user.as_str();
     let auth = HeaderName::from_lowercase(b"whoami").unwrap();
     return (auth, user_str.to_string());

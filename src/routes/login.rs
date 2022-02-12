@@ -20,20 +20,20 @@ pub fn validate_jwt(token: &str) -> String {
         &DecodingKey::from_secret(secret.as_bytes()), 
         &Validation::new(Algorithm::HS256));
     let msg = match token_message {
-        Ok(value) => value.claims.username,
+        Ok(value) => value.claims.userid.to_string(),
         Err(e) => {
             "No User".to_string()
         }
     };
     return msg;
 }
-fn generate_jwt(username: &str) -> String{
+fn generate_jwt(userid: i32, username: &str) -> String{
     let secret = match env::var("EMSPLACE_SECRET") {
         Ok(value) => value,
         Err(E) => "DEFAULT".to_string()
     };
     // no expiration date so far TODO: Change to a monthly expiration
-    let claims = types::Claims { username: username.to_string(), exp: 10000000000};
+    let claims = types::Claims { userid: userid, username: username.to_string(), exp: 10000000000};
     let value = encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes())).unwrap();
     return value;
 }
@@ -54,11 +54,12 @@ async fn login(req: HttpRequest, info: Json<types::UserSignup>) ->  HttpResponse
             } 
             let mut salt_string: &str = "";
             let mut password_hash: &str = "";
+            let mut userid: i32 = 0;
 
             for r in &rows {
+                userid = r.get("id");
                 salt_string = r.get("salt");
                 password_hash = r.get("password");
-
             }
             let salt = HEXUPPER.decode(salt_string.as_bytes()).unwrap();
             pbkdf2::derive(
@@ -73,7 +74,7 @@ async fn login(req: HttpRequest, info: Json<types::UserSignup>) ->  HttpResponse
                 let ret = types::APIResponse{result: "Unauthorized", message: "Cannot Log-in"};
                 return HttpResponse::Forbidden().json(ret);
             } else {
-                let ret = types::APIResponse{result: "Success", message: generate_jwt(username)};
+                let ret = types::APIResponse{result: "Success", message: generate_jwt(userid, username)};
                 return HttpResponse::Ok().json(ret);
             }
         },

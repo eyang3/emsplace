@@ -7,6 +7,20 @@ pub struct Person {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ImageUpload {
+    pub caption: String,
+    pub filename: String,
+    pub isvenmo: bool,
+    pub userid: i32,
+}
+
+impl Default for ImageUpload {
+    fn default () -> ImageUpload {
+        ImageUpload{userid: -1, caption: "".to_string(), filename: "".to_string(), isvenmo: false}
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserSignup {
     pub email: String,
     pub password: String,
@@ -21,6 +35,7 @@ pub struct DBUser {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub username: String,
+    pub userid: i32,
     pub exp: usize
 }
 
