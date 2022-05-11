@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize}; 
+use std::time::SystemTime;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Person {
@@ -12,11 +13,13 @@ pub struct ImageUpload {
     pub filename: String,
     pub isvenmo: bool,
     pub userid: i32,
+    pub post_date: std::time::SystemTime,
 }
 
 impl Default for ImageUpload {
     fn default () -> ImageUpload {
-        ImageUpload{userid: -1, caption: "".to_string(), filename: "".to_string(), isvenmo: false}
+        ImageUpload{userid: -1, caption: "".to_string(), filename: "".to_string(), 
+                        isvenmo: false, post_date:SystemTime::now()}
     }
 }
 
@@ -45,3 +48,12 @@ pub struct APIResponse<P> {
     pub message: P,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Post {
+    pub id: String,
+    pub image: String,
+    pub caption: String,
+    pub venmo: bool,
+    pub upvotes: i32,
+    pub downvotes: i32
+}

@@ -86,6 +86,7 @@ async fn main() -> std::io::Result<()> {
             .service(routes::do_stuff)
             .service(routes::login::login)
             .service(tests3)
+            .service(routes::posts::get_posts)
 
     })
     .bind(("0.0.0.0", port))?

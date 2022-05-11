@@ -61,7 +61,7 @@ lazy_static! {
 
 pub async fn save_post_to_db(entry: types::ImageUpload) {
     let mut client = POOL.get().unwrap();
-    let result = client.query(create_post, &[&entry.userid, &entry.filename, &entry.caption, &entry.isvenmo]);
+    let result = client.query(create_post, &[&entry.userid, &entry.filename, &entry.caption, &entry.isvenmo, &entry.post_date]);
     match result {
         Ok(_) => (
             println!("No error")
@@ -72,8 +72,15 @@ pub async fn save_post_to_db(entry: types::ImageUpload) {
     }
 }
 
+
+
 pub static create_user: &str  = "INSERT INTO users (email, password, salt) VALUES ($1, $2, $3)";
 pub static query_user: &str = "SELECT * FROM users where email = $1";
-pub static create_post: &str = "INSERT INTO posts(userid, image_name, caption, show_venmo) values ($1, $2, $3, $4)";
-
-
+pub static create_post: &str = "INSERT INTO posts(userid, image_name, caption, show_venmo, post_date) values ($1, $2, $3, $4, $5)";
+pub static get_new_posts: &str = "SELECT * from posts order by post_date limit $1 offset $2";
+pub static get_top_posts: &str = "SELECT * from posts where post_date > $1 order by (upvotes - downvotes) limit $2 offset $3";
+pub static upvote: &str = "UPDATE posts set upvotes = upvotes + 1 where id = $1";
+pub static downvote: &str = "UPDATE posts set downvotes = downvotes + 1 where id = $1";
+pub static track_interactions: &str = "SELECT * from user_interaction where userid = $1 and postid = $2";
+pub static add_interaction: &str = "INSERT INTO user_interaction(userid, postid, interaction_count) values($1, $2, 0)";
+pub static update_interaction: &str = "UPDATE user_interactions SET interaction_count = interaction_count + $1 where userid = $2 and postid = $3";

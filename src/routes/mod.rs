@@ -23,6 +23,7 @@ use std::num::NonZeroU32;
 use rusoto_s3::{S3, PutObjectRequest};
 
 pub mod login;
+pub mod posts;
 
 pub async fn save_file(mut payload: Multipart, whoami: &str) -> &'static  str {   
     let mut entry = types::ImageUpload::default();
@@ -119,12 +120,14 @@ async fn do_stuff(req: HttpRequest, info: Json<types::UserSignup>) ->  HttpRespo
 
     const CREDENTIAL_LEN: usize = digest::SHA512_OUTPUT_LEN;
     let rng = rand::SystemRandom::new();
+    
     let mut salt = [0u8; 16];
+    
     rng.fill(&mut salt);
 
     let password = &info.password;
     let username = &info.email;
-
+    
     let n_iter = NonZeroU32::new(8).unwrap();
 
     let mut pbkdf2_hash = [0u8; CREDENTIAL_LEN];
